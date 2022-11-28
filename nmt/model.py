@@ -42,7 +42,7 @@ class CrossAttentionLayer(keras.layers.Layer):
     def __init__(self, units: int, num_heads: int, **kwargs):
         super().__init__()
         
-        #self.last_attention_weights = None
+        # self.last_attention_weights = None
         self.attention_layer = keras.layers.MultiHeadAttention(
             key_dim=units, num_heads=num_heads, **kwargs
         )
@@ -68,7 +68,6 @@ class Decoder(keras.layers.Layer):
         super(Decoder, self).__init__()
         self.tokenizer = tokenizer
         self.vocab_size = self.tokenizer.vocabulary_size()
-        
 
         self.word_to_id = keras.layers.StringLookup(
             vocabulary=self.tokenizer.get_vocabulary(),
@@ -168,16 +167,15 @@ class Translator(keras.models.Model):
                 
             # collect the generated tokens
             tokens.append(next_token)
-            #attention_weights.append(self.decoder.last_attention_weights)
+            # attention_weights.append(self.decoder.last_attention_weights)
 
             if tf.executing_eagerly() and tf.reduce_all(done):
                 break
         
         tokens = tf.concat(tokens, axis=-1)
-        #self.last_attention_weights = tf.concat(attention_weights, axis=1)
+        # self.last_attention_weights = tf.concat(attention_weights, axis=1)
         result = self.decoder.tokens_to_text(tokens)
         return result
-
 
     def call(self, x):
         context, x = x['enc_inputs'], x['dec_inputs']
@@ -191,6 +189,24 @@ class Translator(keras.models.Model):
             pass
 
         return logits
+
+    # def save_model(self):
+    #    saving_path = "./saved_model"
+    #    is not os.path.exists(saving_path):
+    #        os.makedirs(saving_path)
+    #
+    #    ## saving encoder
+    #    # 1. save encoder embedding weights
+    #    embedding_weights = self.encoder.embedding.get_weights()
+    #    with open(os.path.join(saving_path, "encoder_embedding_weights.pkl"), "wb") as output:
+    #        pickle.dump(embedding_weights, output, pickle.HIGHEST_PROTOCOL)
+    #
+    #    # 2. save recurrent layer weights
+    #    rnn_weights = self.encoder.rnn.get_weights()
+    #    with open(os.path.join(saving_path, "encoder_rnn_weights.pkl"), "wb") as output:
+    #        pickle.dump(rnn_weights, output, pickle.HIGHEST_PROTOCOL)
+    #
+    #    ## saving decoder
 
 
 def masked_loss(y_true, y_pred):
