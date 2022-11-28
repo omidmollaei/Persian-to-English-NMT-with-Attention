@@ -3,7 +3,6 @@
 import os
 import typing
 
-import numpy as np
 import tensorflow as tf
 import tensorflow_text as tf_text
 
@@ -11,6 +10,9 @@ default_path = os.path.join("./", "nmt", "data", "pes.txt")
 return_type = typing.Tuple[tf.data.Dataset,
                            typing.Tuple[tf.keras.layers.TextVectorization,
                                         tf.keras.layers.TextVectorization]]
+
+callable_type = typing.Callable[[str, str], typing.Tuple[typing.Union[str, None], str]]
+post_processor_type = typing.Union[callable_type, None]
 
 
 class Hyperparameters(object):
@@ -38,7 +40,7 @@ def preprocess_persian_sentence(sentence: str) -> str:
     reg_pattern = r"[^ \[\]a-zA-Z"
     for a in fa_alphabets:
         reg_pattern += a
-    reg_pattern += "?.!,]+"
+    reg_pattern += "?.!]+"
     sentence = tf.strings.regex_replace(sentence, reg_pattern, '')
     sentence = tf.strings.strip(sentence)  # strip whitespace.
 
@@ -75,10 +77,28 @@ def load_data_from_disk(path):
     return lines
 
 
-def get_anki_dataset(vocab_size: int, batch_size: int,
-                     path: str = default_path) -> return_type:
-    lines = load_data_from_disk(path=path)  # load dataset
+def load_extend_dataset(extend_post_processor: post_processor_type = None) -> typing.Tuple[list, list]:
+    english_sentences = load_data_from_disk(path=os.path.join("./", "nmt", "data", "english_sentences.txt"))
+    persian_sentences = load_data_from_disk(path=os.path.join("./", "nmt", "data", "persian_sentences.txt"))
+    clean_persian, clean_english = list(), list()
+    for p, e in zip(persian_sentences, english_sentences):
+        p, e = extend_post_processor(p, e)
+        if p is not None:
+            clean_persian.append(p)
+            clean_english.append(e)
 
+    return clean_persian, clean_english
+
+
+def get_anki_dataset(vocab_size: int, batch_size: int,
+                     path: str = default_path,
+                     extend: bool = False,
+                     extend_post_processor: post_processor_type = None) -> return_type:
+    """prepare nmt dataset. The file names of additional data must be:
+    english_sentences.txt and persian_sentences.txt and be placed inside nmt/data"""
+
+    # load anki dataset
+    lines = load_data_from_disk(path=path)
     inputs, targets = [], []
     for line in lines:
         parts = line.split("\t")
@@ -86,6 +106,12 @@ def get_anki_dataset(vocab_size: int, batch_size: int,
             continue
         inputs.append(parts[1])    # persian sentence
         targets.append(parts[0])   # english sentence
+
+    # load additional dataset
+    if extend:
+        persian_sentences, english_sentences = load_extend_dataset(extend_post_processor)
+        inputs = inputs + persian_sentences
+        targets = targets + english_sentences
 
     # build and initialize vectorizer layers
     inputs_text_processor = tf.keras.layers.TextVectorization(
