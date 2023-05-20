@@ -10,7 +10,7 @@ import numpy as np
 import tensorflow as tf
 from dataclasses import field
 from dataclasses import dataclass
-from typing import Union, Any, Callable
+from typing import Union, Callable
 
 return_type = typing.Tuple[tf.data.Dataset,
                            typing.Tuple[tf.keras.layers.TextVectorization,
@@ -151,3 +151,10 @@ def load_dataset(config: DatasetConfig) -> return_type:
     dataset = dataset.batch(config.batch_size)
     dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
     return dataset, inputs_vectorizer, targets_vectorizer
+
+
+def decode(sequence: Union[list, tf.Tensor, np.ndarray], vectorizer):
+    seq_len = tf.reduce_sum(tf.cast(tf.math.not_equal(sequence, 0), dtype=tf.int32))
+    seq = tf.gather(vectorizer.get_vocabulary(), sequence).numpy()
+    words = [w.decode("utf8") if isinstance(w, bytes) else w for w in seq[:seq_len]]
+    return " ".join(words)
