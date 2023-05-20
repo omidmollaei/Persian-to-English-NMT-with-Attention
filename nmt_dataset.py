@@ -118,3 +118,36 @@ def _load_data_from_disk():
 
     return english, persian
 
+
+def load_dataset(config: DatasetConfig) -> return_type:
+    """Load english to persian translation dataset.
+    The data is from anki (https://www.manythings.org/anki/) and abadis (abadis.ir)."""
+    english, persian = _load_data_from_disk()
+    dataset = tf.data.Dataset.from_tensor_slices((persian, english))
+    dataset = dataset.filter(lambda inputs, targets: tf.strings.length(inputs) > 0 and tf.strings.length(targets) > 0)
+    en_sentences = dataset.map(lambda inputs, targets: targets)
+    fa_sentences = dataset.map(lambda inputs, targets: inputs)
+
+    inputs_vectorizer = tf.keras.layers.TextVectorization(
+        max_tokens=config.vocab_size,
+        standardize=build_preprocessor(config.inputs_preprocessor) if config.inputs_preprocessor else clean_fa,
+        split="whitespace",
+        output_sequence_length=config.max_sequence_len,
+    )
+
+    targets_vectorizer = tf.keras.layers.TextVectorization(
+        max_tokens=config.vocab_size,
+        standardize=build_preprocessor(config.targets_preprocessor) if config.targets_preprocessor else clean_en,
+        split="whitespace",
+        output_sequence_length=config.max_sequence_len,
+    )
+
+    inputs_vectorizer.adapt(fa_sentences)
+    targets_vectorizer.adapt(en_sentences)
+
+    dataset = dataset.map(lambda inputs, targets: (inputs_vectorizer(inputs), targets_vectorizer(targets)))
+    dataset = dataset.cache()
+    dataset = dataset.shuffle(len(english))
+    dataset = dataset.batch(config.batch_size)
+    dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+    return dataset, inputs_vectorizer, targets_vectorizer
