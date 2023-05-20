@@ -53,4 +53,37 @@ class DatasetConfig:
     )
 
 
+# setup for persian preprocess function
+fa_alphabets = ["آ", "ا", "ب", "پ", "ت", "ث", "ج", "چ", "ح", "خ",
+                "د", "ذ", "ر", "ز", "ژ", "س", "ش", "ص", "ض", "ط",
+                "ظ", "ع", "غ", "ف", "ق", "ک", "گ", "ل", "م", "ن",
+                "و", "ه", "ی", "ء", "1", "2", "3", "4", "5", "6",
+                "7", "8", "9", "0", "؟"]
+fa_reg_pattern = r"[^ \[\]a-zA-Z"
+for a in fa_alphabets:
+    fa_reg_pattern += a
+fa_reg_pattern += "?!]+"
+
+
+def build_preprocessor(func: Callable):
+    def inner_preprocessor(*args, **kwargs):
+        sentence = func(*args, **kwargs)
+
+        # add start and end tokens
+        sentence = tf.strings.join(['[SOS]', sentence, '[EOS]'], separator=' ')
+        return sentence
+
+    return inner_preprocessor
+
+
+@build_preprocessor
+def clean_fa(sentence: str) -> str:
+    """Preprocess input persian sentence"""
+    # create a space between a word and the punctuation following it.
+    sentence = tf.strings.regex_replace(sentence, r"([<>?؟.!,])", r" \1 ")
+    sentence = tf.strings.regex_replace(sentence, r'[" "]+', " ")
+    sentence = tf.strings.regex_replace(sentence, fa_reg_pattern, '')
+    sentence = tf.strings.strip(sentence)  # strip whitespace.
+    return sentence
+
 
