@@ -95,3 +95,26 @@ def clean_en(sentence: str) -> str:
     sentence = tf.strings.regex_replace(sentence, '[.?!,¿]', r' \0 ')
     sentence = tf.strings.strip(sentence)
     return sentence
+
+
+def _load_data_from_disk():
+    """Load source (english) and target (persian) sentences from files inside ./dataset directory.
+    and these sentences as two list."""
+    en_files = [f"./dataset/init_words/english_{i}.txt" for i in range(1, 7)]
+    fa_files = [f"./dataset/init_words/persian_{i}.txt" for i in range(1, 7)]
+
+    persian, english = list(), list()
+    for eng_file, per_file in zip(en_files, fa_files):
+        with open(eng_file, 'r') as f:
+            english += f.readlines()
+        with open(per_file, 'r', encoding="utf8") as f:
+            persian += f.readlines()
+
+    with open("./dataset/init_words/english_sentences.txt", 'r') as f:
+        english += f.readlines()
+
+    with open("./dataset/init_words/persian_sentences.txt", 'r', encoding="utf8") as f:
+        persian += f.readlines()
+
+    return english, persian
+
