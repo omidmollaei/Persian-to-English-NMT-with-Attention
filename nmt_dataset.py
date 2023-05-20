@@ -87,3 +87,11 @@ def clean_fa(sentence: str) -> str:
     return sentence
 
 
+@build_preprocessor
+def clean_en(sentence: str) -> str:
+    """Preprocess target english sentence"""
+    sentence = tf.strings.lower(sentence)
+    sentence = tf.strings.regex_replace(sentence, '[^ a-z.?!,¿\[\]]', '')
+    sentence = tf.strings.regex_replace(sentence, '[.?!,¿]', r' \0 ')
+    sentence = tf.strings.strip(sentence)
+    return sentence
