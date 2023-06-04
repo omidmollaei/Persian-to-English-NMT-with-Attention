@@ -98,7 +98,7 @@ def clean_en(sentence: str) -> str:
 
 
 def _load_data_from_disk():
-    """Load source (english) and target (persian) sentences from files inside ./dataset directory.
+    """Load source (persian) and target (english) sentences from files inside ./dataset directory.
     and these sentences as two list."""
     en_files = [f"./dataset/init_words/english_{i}.txt" for i in range(1, 7)]
     fa_files = [f"./dataset/init_words/persian_{i}.txt" for i in range(1, 7)]
@@ -116,13 +116,13 @@ def _load_data_from_disk():
     with open("./dataset/init_words/persian_sentences.txt", 'r', encoding="utf8") as f:
         persian += f.readlines()
 
-    return english, persian
+    return persian, english
 
 
 def load_dataset(config: DatasetConfig) -> return_type:
     """Load english to persian translation dataset.
     The data is from anki (https://www.manythings.org/anki/) and abadis (abadis.ir)."""
-    english, persian = _load_data_from_disk()
+    persian, english = _load_data_from_disk()
     dataset = tf.data.Dataset.from_tensor_slices((persian, english))
     dataset = dataset.filter(lambda inputs, targets: tf.strings.length(inputs) > 0 and tf.strings.length(targets) > 0)
     en_sentences = dataset.map(lambda inputs, targets: targets)
