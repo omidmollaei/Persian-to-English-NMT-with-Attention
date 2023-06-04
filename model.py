@@ -36,4 +36,27 @@ class Encoder(keras.layers.Layer):
         context = self.tokenizer(texts)
         context = self(context)
         return context
-    
+
+
+class CrossAttentionLayer(keras.layers.Layer):
+    def __init__(self, units: int, num_heads: int, **kwargs):
+        super().__init__()
+        # self.last_attention_weights = None
+        self.attention_layer = keras.layers.MultiHeadAttention(
+            key_dim=units, num_heads=num_heads, **kwargs
+        )
+        self.layer_norm = keras.layers.LayerNormalization()
+        self.add = keras.layers.Add()
+
+    def call(self, x, context):
+        """x is input to decode and context is encoder's output sequence"""
+        attn_output, attn_scores = self.attention_layer(
+            query=x,
+            value=context,
+            return_attention_scores=True)
+
+        x = self.add([x, attn_output])
+        x = self.layer_norm(x)
+        return x
+
+
