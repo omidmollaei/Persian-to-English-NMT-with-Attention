@@ -63,7 +63,7 @@ class Decoder(keras.layers.Layer):
     def __init__(self, units: int, attn_num_heads: int, tokenizer: tokenizer_type):
         super(Decoder, self).__init__()
         self.tokenizer = tokenizer
-        self.vocab_size = self.tokenizer.get_vocabulary()
+        self.vocab_size = self.tokenizer.vocabulary_size()
 
         self.word_to_id = keras.layers.StringLookup(
             vocabulary=self.tokenizer.get_vocabulary(),
@@ -163,7 +163,7 @@ class Translator(keras.models.Model):
         return result
 
     def call(self, x):
-        context, x = x['enc_inputs'], x['dec_inputs']
+        context, x = x
 
         context = self.encoder(context)
         logits = self.decoder(context, x)
@@ -174,4 +174,3 @@ class Translator(keras.models.Model):
             pass
 
         return logits
-    
