@@ -124,3 +124,54 @@ class Decoder(keras.layers.Layer):
         done = done | (next_token == self.end_token)
         next_token = tf.where(done, tf.constant(0, dtype=tf.int64), next_token)
         return next_token, done, state
+
+
+class Translator(keras.models.Model):
+    def __init__(self, inputs_tokenizer: tokenizer_type, targets_tokenizer: tokenizer_type,
+                 units: int, attn_num_heads: int):
+        super().__init__()
+
+        self.encoder = Encoder(units, tokenizer=inputs_tokenizer)
+        self.decoder = Decoder(units, attn_num_heads, tokenizer=targets_tokenizer)
+
+    def translate(self, texts: int, *, max_length: int = 50, temperature: float = 0.0):
+        # process the input texts
+        context = self.encoder.convert_input(texts)
+        batch_size = tf.shape(texts)[0]
+
+        # set up the loop inputs
+        tokens = []
+        attention_weights = []
+        next_token, done, state = self.decoder.get_initial_state(context)
+
+        for _ in range(max_length):
+
+            # generate the next token
+            next_token, done, state = self.decoder.get_next_token(
+                context, next_token, done, state, temperature)
+
+            # collect the generated tokens
+            tokens.append(next_token)
+            # attention_weights.append(self.decoder.last_attention_weights)
+
+            if tf.executing_eagerly() and tf.reduce_all(done):
+                break
+
+        tokens = tf.concat(tokens, axis=-1)
+        # self.last_attention_weights = tf.concat(attention_weights, axis=1)
+        result = self.decoder.tokens_to_text(tokens)
+        return result
+
+    def call(self, x):
+        context, x = x['enc_inputs'], x['dec_inputs']
+
+        context = self.encoder(context)
+        logits = self.decoder(context, x)
+
+        try:
+            del logits._keras_mask
+        except AttributeError:
+            pass
+
+        return logits
+    
