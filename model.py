@@ -174,3 +174,11 @@ class Translator(keras.models.Model):
             pass
 
         return logits
+
+
+def masked_loss(y_true, y_pred):
+    loss_fn = keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="none")
+    loss = loss_fn(y_true, y_pred)
+    mask = tf.cast(y_true != 0, loss.dtype)
+    loss *= mask
+    return tf.reduce_sum(loss)/tf.reduce_sum(mask)
