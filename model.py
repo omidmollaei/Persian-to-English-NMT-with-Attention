@@ -163,8 +163,7 @@ class Translator(keras.models.Model):
         return result
 
     def call(self, x):
-        context, x = x["enc_input"], x["dec_inputs"]
-
+        context, x = x["enc_inputs"], x["dec_inputs"]
         context = self.encoder(context)
         logits = self.decoder(context, x)
 
