@@ -147,7 +147,7 @@ def load_dataset(config: DatasetConfig) -> return_type:
 
     dataset = dataset.map(lambda inputs, targets: (inputs_vectorizer(inputs), targets_vectorizer(targets)))
     dataset = dataset.map(lambda inputs, targets: (
-        {"enc_inputs": inputs, "dec_inputs": targets[:, :-1]}, targets[:, 1:]))
+        {"enc_inputs": inputs, "dec_inputs": targets[:-1]}, targets[1:]))
     dataset = dataset.cache()
     dataset = dataset.shuffle(len(english))
     dataset = dataset.batch(config.batch_size)
